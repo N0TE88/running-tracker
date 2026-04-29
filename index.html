@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Running Tracker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="theme-toggle">
+  <label class="switch">
+    <span class="sun">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <g fill="#ffd43b">
+          <circle r="5" cy="12" cx="12"></circle>
+        </g>
+      </svg>
+    </span>
+
+    <span class="moon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512">
+        <path d="m223.5 32c-123.5 0-223.5 100.3-223.5 224s100 224 223.5 224c60.6 0 115.5-24.2 155.8-63.4z"></path>
+      </svg>
+    </span>
+
+    <input type="checkbox" class="input" onchange="toggleDarkMode()">
+    <span class="slider"></span>
+  </label>
+</div>
+
+<!-- 🔐 LOGIN -->
+<div id="loginPage" class="login">
+    <h1>🏃 Running Tracker</h1>
+    <input type="text" id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="login()">Login</button>
+</div>
+
+<!-- 🧭 APP -->
+<div id="app" style="display:none;">
+
+    <!-- Sidebar -->
+     
+   <div class="sidebar">
+
+  <h2>📚 Library</h2>
+
+  <div class="radio-container">
+
+    <input checked id="radio-runs" name="radio" type="radio" onclick="showPage('runs')" />
+    <label for="radio-runs">🏃 Runs</label>
+
+    <input id="radio-charts" name="radio" type="radio" onclick="showPage('charts')" />
+    <label for="radio-charts">📊 Charts</label>
+
+    <input id="radio-stats" name="radio" type="radio" onclick="showPage('stats')" />
+    <label for="radio-stats">📈 Stats</label>
+
+    <input id="radio-goals" name="radio" type="radio" onclick="showPage('goals')" />
+    <label for="radio-goals">🎯 Goals</label>
+
+    <input id="radio-streak" name="radio" type="radio" onclick="showPage('streak')" />
+    <label for="radio-streak">🔥 Streak</label>
+
+    <div class="glider-container">
+      <div class="glider"></div>
+    </div>
+
+  </div>
+
+</div>
+
+    <!-- Content -->
+    <div class="content" id="content">
+        <h2>Welcome 👋</h2>
+        <p>Select a section from the library</p>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="script.js"></script>
+
+</body>
+</html>

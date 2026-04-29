@@ -1,0 +1,324 @@
+body {
+    margin: 0;
+    font-family: Arial;
+    background: #f3f4f6;
+}
+
+/* LOGIN */
+.login {
+    text-align: center;
+    margin-top: 100px;
+}
+
+.login input {
+    display: block;
+    margin: 10px auto;
+    padding: 10px;
+    width: 200px;
+}
+
+.login button {
+    padding: 10px 15px;
+}
+
+/* APP LAYOUT */
+#app {
+    display: flex;
+    height: 100vh;
+}
+
+/* SIDEBAR */
+.sidebar {
+    width: 220px;
+    background: #111827;
+    color: white;
+    padding: 20px;
+}
+
+.sidebar button {
+    display: block;
+    width: 100%;
+    margin: 10px 0;
+    padding: 10px;
+    background: #1f2937;
+    border: none;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.sidebar button:hover {
+    background: #374151;
+}
+
+/* CONTENT */
+.content {
+    flex: 1;
+    padding: 20px;
+}
+
+/* CARDS */
+.card {
+    background: white;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 10px;
+}
+
+/* INPUTS */
+input, button {
+    padding: 10px;
+    margin: 5px;
+}
+
+/* DARK MODE */
+.dark {
+    background: #0f172a;
+    color: white;
+}
+/* From Uiverse.io by Smit-Prajapati */ 
+.radio-container {
+  --main-color: #3019e1;
+  --main-color-opacity: #bfbdb11c;
+
+  /* change this according inputs count */
+  --total-radio: 5;
+
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding-left: 0.5rem;
+}
+.radio-container input {
+  cursor: pointer;
+  appearance: none;
+}
+.radio-container .glider-container {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(27, 27, 27, 1) 50%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  width: 1px;
+}
+.radio-container .glider-container .glider {
+  position: relative;
+  height: calc(100% / var(--total-radio));
+  width: 100%;
+  background: linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0) 0%,
+    var(--main-color) 50%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  transition: transform 0.5s cubic-bezier(0.37, 1.95, 0.66, 0.56);
+}
+.radio-container .glider-container .glider::before {
+  content: "";
+  position: absolute;
+  height: 60%;
+  width: 300%;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--main-color);
+  filter: blur(10px);
+}
+.radio-container .glider-container .glider::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  height: 100%;
+  width: 150px;
+  background: linear-gradient(
+    90deg,
+    var(--main-color-opacity) 0%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+.radio-container label {
+  cursor: pointer;
+  padding: 1rem;
+  position: relative;
+  color: grey;
+  transition: all 0.3s ease-in-out;
+}
+
+.radio-container input:checked + label {
+  color: var(--main-color);
+}
+
+.radio-container input:nth-of-type(1):checked ~ .glider-container .glider {
+  transform: translateY(0);
+}
+
+.radio-container input:nth-of-type(2):checked ~ .glider-container .glider {
+  transform: translateY(100%);
+}
+
+.radio-container input:nth-of-type(3):checked ~ .glider-container .glider {
+  transform: translateY(200%);
+}
+
+.radio-container input:nth-of-type(4):checked ~ .glider-container .glider {
+  transform: translateY(300%);
+}
+
+.radio-container input:nth-of-type(5):checked ~ .glider-container .glider {
+  transform: translateY(400%);
+}
+
+.radio-container input:nth-of-type(6):checked ~ .glider-container .glider {
+  transform: translateY(500%);
+}
+
+.radio-container input:nth-of-type(7):checked ~ .glider-container .glider {
+  transform: translateY(600%);
+}
+
+.radio-container input:nth-of-type(8):checked ~ .glider-container .glider {
+  transform: translateY(700%);
+}
+
+.radio-container input:nth-of-type(9):checked ~ .glider-container .glider {
+  transform: translateY(800%);
+}
+
+.radio-container input:nth-of-type(10):checked ~ .glider-container .glider {
+  transform: translateY(900%);
+}
+/* SWITCH */
+.switch {
+  font-size: 17px;
+  position: relative;
+  display: inline-block;
+  width: 64px;
+  height: 34px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #73C0FC;
+  transition: .4s;
+  border-radius: 30px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 30px;
+  width: 30px;
+  border-radius: 20px;
+  left: 2px;
+  bottom: 2px;
+  z-index: 2;
+  background-color: #e8e8e8;
+  transition: .4s;
+}
+
+.sun svg {
+  position: absolute;
+  top: 6px;
+  left: 36px;
+  z-index: 1;
+  width: 24px;
+  height: 24px;
+}
+
+.moon svg {
+  fill: #73C0FC;
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  z-index: 1;
+  width: 24px;
+  height: 24px;
+}
+
+.input:checked + .slider {
+  background-color: #183153;
+}
+
+.input:focus + .slider {
+  box-shadow: 0 0 1px #183153;
+}
+
+.input:checked + .slider:before {
+  transform: translateX(30px);
+}
+.dark {
+    background: #0f172a;
+    color: #e5e7eb;
+}
+
+.dark .content {
+    background: #0b1220;
+}
+
+.dark .card {
+    background: #1e293b;
+    color: white;
+}
+
+.dark .sidebar {
+    background: #020617;
+}
+
+.dark input,
+.dark button {
+    background: #111827;
+    color: white;
+    border: 1px solid #334155;
+}
+
+.dark li {
+    background: #1e293b;
+}
+.theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+}
+.page {
+    animation: pageIn 0.35s ease;
+}
+
+@keyframes pageIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.card {
+    background: white;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px;
+}
