@@ -1,129 +1,346 @@
+let watchId = null;
+let liveRoute = [];
+let livePolyline = null;
+let liveMap = null;
 let runs = JSON.parse(localStorage.getItem("runs")) || [];
-let goal = JSON.parse(localStorage.getItem("goal")) || 0;
-let streak = JSON.parse(localStorage.getItem("streak")) || 0;
+let goal = Number(localStorage.getItem("goal")) || 0;
+let streak = Number(localStorage.getItem("streak")) || 0;
 
 let distanceChart;
 let paceChart;
 
-// 🔐 LOGIN
-function login() {
-    let user = document.getElementById("username").value;
-    let pass = document.getElementById("password").value;
+/* =========================
+   LOGIN
+========================= */
+window.login = function () {
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
 
-    if (!user || !pass) {
-        alert("Fill credentials");
+    if (!username || !password) {
+        alert("Please fill all fields");
         return;
     }
 
-    document.getElementById("loginPage").style.display = "none";
-    document.getElementById("app").style.display = "flex";
-}
+    const btn = document.querySelector(".login-card button");
+    btn.innerText = "Signing in...";
 
-// 🧭 ROUTER
+    setTimeout(() => {
+        localStorage.setItem("user", username);
+
+        document.getElementById("loginPage").style.display = "none";
+        document.getElementById("app").style.display = "flex";
+
+        showPage("home");
+    }, 700);
+};
+
+/* =========================
+   ROUTER
+========================= */
 function showPage(page) {
+    const content = document.getElementById("content");
+    if (!content) return;
 
     setRadio("radio-" + page);
 
-    let content = document.getElementById("content");
-
-    // fade out
     content.style.opacity = 0;
     content.style.transform = "translateY(10px)";
 
     setTimeout(() => {
 
-        // RUN YOUR EXISTING PAGE LOGIC HERE
+        if (page === "home") {
+            content.innerHTML = homeUI();
+            refreshHome();
+        }
+
         if (page === "runs") {
-            content.innerHTML = `
-                <h2>🏃 Runs</h2>
-                <input id="distance" placeholder="Distance km">
-                <input id="time" placeholder="Time min">
-                <input id="date" type="date">
-                <button onclick="addRun()">Add Run</button>
-                <ul id="runList"></ul>
-            `;
+            content.innerHTML = runsUI();
             displayRuns();
         }
 
         if (page === "charts") {
-            content.innerHTML = `
-                <h2>📊 Charts</h2>
-                <canvas id="runChart"></canvas>
-                <canvas id="paceChart"></canvas>
-            `;
+            content.innerHTML = chartsUI();
             updateCharts();
         }
 
         if (page === "stats") {
-            content.innerHTML = `
-                <h2>📈 Stats</h2>
-                <p id="totalDistance"></p>
-                <p id="avgPace"></p>
-            `;
-            updateStats();
+            content.innerHTML = statsUI();
+            refreshStats();
         }
 
         if (page === "goals") {
-            content.innerHTML = `
-                <h2>🎯 Goals</h2>
-                <input id="goalInput" type="number">
-                <button onclick="setGoal()">Set Goal</button>
-                <p id="goalText"></p>
-                <progress id="goalProgress" value="0" max="100"></progress>
-            `;
-            updateGoal();
+            content.innerHTML = goalsUI();
+            refreshGoal();
         }
 
         if (page === "streak") {
-            content.innerHTML = `
-                <h2>🔥 Streak</h2>
-                <p id="streakText"></p>
-            `;
-            updateStreak();
+            content.innerHTML = streakUI();
+            refreshStreak();
         }
+       if (page === "map") {
+    content.innerHTML = `
+        <h2>🗺️ Live Run Tracker</h2>
 
-        // fade in
-        content.classList.remove("page");
-        void content.offsetWidth; // restart animation
-        content.classList.add("page");
+        <div class="card">
+            <button onclick="startRun()">▶ Start Run</button>
+            <button onclick="stopRun()">⏹ Stop Run</button>
+            <p id="gpsStatus">GPS idle</p>
+            <div id="map" style="height:320px;border-radius:12px;"></div>
+        </div>
+    `;
+
+    setTimeout(initLiveMap, 100);
+}
 
         content.style.opacity = 1;
         content.style.transform = "translateY(0)";
 
-    }, 150);
+    }, 120);
+}
+function initLiveMap() {
+    if (liveMap) {
+        liveMap.remove();
+    }
+
+    liveMap = L.map('map').setView([36.8, 10.18], 15);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: ''
+    }).addTo(liveMap);
+
+    liveRoute = [];
+
+    livePolyline = L.polyline([], {
+        color: "#ff4d4d",
+        weight: 4
+    }).addTo(liveMap);
+}
+function startRun() {
+    if (!navigator.geolocation) {
+        alert("GPS not supported");
+        return;
+    }
+
+    document.getElementById("gpsStatus").innerText = "Tracking live run...";
+
+    liveRoute = [];
+
+    watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+
+            const point = [lat, lng];
+            liveRoute.push(point);
+
+            livePolyline.setLatLngs(liveRoute);
+            liveMap.setView(point, 16);
+
+            // marker (latest position)
+            L.circleMarker(point, {
+                radius: 6,
+                color: "white",
+                fillColor: "#ff4d4d",
+                fillOpacity: 1
+            }).addTo(liveMap);
+        },
+        (err) => {
+            document.getElementById("gpsStatus").innerText =
+                "GPS error: " + err.message;
+        },
+        {
+            enableHighAccuracy: true,
+            maximumAge: 1000,
+            timeout: 5000
+        }
+    );
+}
+function stopRun() {
+    if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+    }
+
+    document.getElementById("gpsStatus").innerText = "Run stopped";
+
+    if (liveRoute.length > 1) {
+        const distance = calculateDistance(liveRoute);
+
+        runs.push({
+            id: Date.now(),
+            distance: distance.toFixed(2),
+            time: 0,
+            pace: 0,
+            date: new Date().toISOString().split("T")[0],
+            route: liveRoute
+        });
+
+        localStorage.setItem("runs", JSON.stringify(runs));
+    }
+}
+function calculateDistance(route) {
+    let total = 0;
+
+    for (let i = 1; i < route.length; i++) {
+        total += getDistanceFromLatLon(
+            route[i-1][0], route[i-1][1],
+            route[i][0], route[i][1]
+        );
+    }
+
+    return total;
 }
 
-// 🏃 RUNS
-content.innerHTML = `
-<div class="page">
+function getDistanceFromLatLon(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
 
-    <h2>🏃 Running Dashboard</h2>
+    const a =
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon/2) * Math.sin(dLon/2);
 
-    <div class="grid">
+    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+}
 
-        <div class="card">
-            <h3>Add Run</h3>
-            <input id="distance" placeholder="Distance km">
-            <input id="time" placeholder="Time min">
-            <input id="date" type="date">
-            <button onclick="addRun()">Add</button>
+function deg2rad(deg) {
+    return deg * (Math.PI/180);
+}
+
+
+/* =========================
+   UI TEMPLATES
+========================= */
+
+function homeUI() {
+    return `
+<div class="dashboard">
+
+    <!-- TOP HERO -->
+    <div class="topbar">
+        <div>
+            <p class="welcome">WELCOME BACK</p>
+            <h1>Raslene 👋</h1>
         </div>
 
-        <div class="card">
-            <h3>Quick Stats</h3>
-            <p id="totalDistance"></p>
-            <p id="avgPace"></p>
+        <div class="profile-circle">
+            🏃
+        </div>
+    </div>
+
+    <!-- HERO CARD -->
+    <div class="hero premium-hero">
+
+        <div class="hero-overlay"></div>
+
+        <div class="hero-content">
+            <span class="live-badge">● LIVE FITNESS</span>
+
+            <h2 id="heroMsg">
+                Strong consistency 🔥
+            </h2>
+
+            <p>
+                Keep building your endurance and pace.
+            </p>
+
+            <div class="hero-stats">
+                <div>
+                    <span>Weekly Distance</span>
+                    <h3 id="weekDistance">0 km</h3>
+                </div>
+
+                <div>
+                    <span>Average Pace</span>
+                    <h3 id="avgPace">0 min/km</h3>
+                </div>
+            </div>
         </div>
 
     </div>
 
-    <div class="card">
-        <h3>Recent Runs</h3>
-        <ul id="runList"></ul>
+    <!-- QUICK STATS -->
+    <div class="stats-grid">
+
+        <div class="stat-card glass">
+            <span>🔥 Streak</span>
+            <h3 id="streakText">0 weeks</h3>
+        </div>
+
+        <div class="stat-card glass highlight-card">
+            <span>🎯 Goal</span>
+            <h3 id="goalText">0%</h3>
+        </div>
+
+    </div>
+
+    <!-- CHART -->
+    <div class="card premium-card">
+        <div class="section-header">
+            <h3>Performance Trend</h3>
+            <span>Last Runs</span>
+        </div>
+
+        <canvas id="runChart"></canvas>
     </div>
 
 </div>
 `;
+}
+
+function runsUI() {
+    return `
+<h2>🏃 Runs</h2>
+
+<input id="distance" placeholder="Distance (km)">
+<input id="time" placeholder="Time (min)">
+<input id="date" type="date">
+
+<button onclick="addRun()">Add Run</button>
+
+<ul id="runList"></ul>
+`;
+}
+
+function chartsUI() {
+    return `
+<h2>📊 Charts</h2>
+<canvas id="runChart"></canvas>
+<canvas id="paceChart"></canvas>
+`;
+}
+
+function statsUI() {
+    return `
+<h2>📈 Stats</h2>
+<p id="totalDistance"></p>
+<p id="avgPace"></p>
+`;
+}
+
+function goalsUI() {
+    return `
+<h2>🎯 Goals</h2>
+
+<input id="goalInput" type="number" placeholder="Weekly km goal">
+<button onclick="setGoal()">Set Goal</button>
+
+<p id="goalText"></p>
+<progress id="goalProgress" max="100" value="0"></progress>
+`;
+}
+
+function streakUI() {
+    return `
+<h2>🔥 Streak</h2>
+<p id="streakText"></p>
+`;
+}
+
+/* =========================
+   RUNS
+========================= */
 function addRun() {
     let distance = Number(document.getElementById("distance").value);
     let time = Number(document.getElementById("time").value);
@@ -139,18 +356,19 @@ function addRun() {
         date
     });
 
-    localStorage.setItem("runs", JSON.stringify(runs));
+    save();
     displayRuns();
+    refreshAll();
 }
 
 function displayRuns() {
-    let list = document.getElementById("runList");
+    const list = document.getElementById("runList");
     if (!list) return;
 
     list.innerHTML = "";
 
     runs.forEach(r => {
-        let li = document.createElement("li");
+        const li = document.createElement("li");
         li.innerHTML = `
             ${r.date} - ${r.distance}km (${r.time}min)
             <button onclick="deleteRun(${r.id})">❌</button>
@@ -161,149 +379,218 @@ function displayRuns() {
 
 function deleteRun(id) {
     runs = runs.filter(r => r.id !== id);
-    localStorage.setItem("runs", JSON.stringify(runs));
+    save();
     displayRuns();
+    refreshAll();
 }
 
-// 📊 STATS
-function updateStats() {
-    let total = runs.reduce((s, r) => s + r.distance, 0);
-    let avg = runs.length ? runs.reduce((s, r) => s + r.time, 0) / total : 0;
+/* =========================
+   STATS CORE
+========================= */
+function getWeekRuns() {
+    const now = new Date();
 
-    let t = document.getElementById("totalDistance");
-    let a = document.getElementById("avgPace");
-
-    if (t) t.innerText = `Total: ${total.toFixed(1)} km`;
-    if (a) a.innerText = `Avg pace: ${avg.toFixed(2)} min/km`;
+    return runs.filter(r => {
+        const d = new Date(r.date);
+        return (now - d) / (1000 * 60 * 60 * 24) <= 7;
+    });
 }
 
-// 📊 CHARTS
+function refreshStats() {
+    const total = runs.reduce((s, r) => s + r.distance, 0);
+    const avg = total ? runs.reduce((s, r) => s + r.time, 0) / total : 0;
+
+    setText("totalDistance", `Total: ${total.toFixed(1)} km`);
+    setText("avgPace", `Avg: ${avg.toFixed(2)} min/km`);
+}
+
+/* =========================
+   HOME DASHBOARD
+========================= */
+
+function refreshHome() {
+    const week = getWeekRuns();
+
+    const weekDist = week.reduce((s, r) => s + r.distance, 0);
+    const weekTime = week.reduce((s, r) => s + r.time, 0);
+
+    const avg = weekDist ? (weekTime / weekDist).toFixed(2) : 0;
+
+    setText("weekDistance", `${weekDist.toFixed(1)} km`);
+    setText("avgPace", `${avg} min/km`);
+
+    setText("heroMsg", athleteMessage(weekDist));
+
+    refreshGoal();
+    refreshStreak();
+    updateCharts();
+}
+
+/* =========================
+   CHARTS
+========================= */
 function updateCharts() {
-    let labels = runs.map(r => r.date);
+    const labels = runs.map(r => r.date);
+    const dist = runs.map(r => r.distance);
+    const pace = runs.map(r => r.pace);
 
-    let dist = runs.map(r => r.distance);
-    let pace = runs.map(r => r.pace);
+    const c1 = document.getElementById("runChart");
+    const c2 = document.getElementById("paceChart");
+
+    if (!c1) return;
 
     if (distanceChart) distanceChart.destroy();
     if (paceChart) paceChart.destroy();
 
-    let ctx1 = document.getElementById("runChart")?.getContext("2d");
-    let ctx2 = document.getElementById("paceChart")?.getContext("2d");
-
-    if (!ctx1 || !ctx2) return;
-
-    distanceChart = new Chart(ctx1, {
+    distanceChart = new Chart(c1, {
         type: "line",
-        data: {
-            labels,
-            datasets: [{ label: "Distance", data: dist }]
-        }
+        data: { labels, datasets: [{ data: dist, label: "Distance" }] }
     });
 
-    paceChart = new Chart(ctx2, {
-        type: "line",
-        data: {
-            labels,
-            datasets: [{ label: "Pace", data: pace }]
-        }
-    });
+    if (c2) {
+        paceChart = new Chart(c2, {
+            type: "line",
+            data: { labels, datasets: [{ data: pace, label: "Pace" }] }
+        });
+    }
 }
 
-// 🎯 GOAL
+/* =========================
+   GOALS
+========================= */
 function setGoal() {
     goal = Number(document.getElementById("goalInput").value);
-    localStorage.setItem("goal", JSON.stringify(goal));
-    updateGoal();
+    localStorage.setItem("goal", goal);
+    refreshGoal();
 }
 
-function updateGoal() {
-    let total = runs.reduce((s, r) => s + r.distance, 0);
-    let percent = goal ? (total / goal) * 100 : 0;
+function refreshGoal() {
+    const total = runs.reduce((s, r) => s + r.distance, 0);
+    const percent = goal ? (total / goal) * 100 : 0;
 
-    document.getElementById("goalText").innerText =
-        `Goal: ${total.toFixed(1)} / ${goal} km`;
-
-    document.getElementById("goalProgress").value = percent;
+    setText("goalText", `${total.toFixed(1)} / ${goal} km`);
+    const bar = document.getElementById("goalProgress");
+    if (bar) bar.value = percent;
 }
 
-// 🔥 STREAK (WEEKLY)
-function updateStreak() {
-    if (!goal || runs.length === 0) {
-        document.getElementById("streakText").innerText =
-            "🔥 Set a goal to track streak";
+/* =========================
+   STREAK (WEEKLY - FIXED)
+========================= */
+function refreshStreak() {
+    if (!goal) {
+        setText("streakText", "Set goal first");
         return;
     }
 
-    let today = new Date();
+    let count = 0;
+    const today = new Date();
 
-    // helper: get runs in a 7-day window ending at a date
-    function getWeekTotal(endDate) {
-        let end = new Date(endDate);
-        let start = new Date(end);
+    const weekTotal = (end) => {
+        const start = new Date(end);
         start.setDate(end.getDate() - 7);
 
         return runs
             .filter(r => {
-                let d = new Date(r.date);
+                const d = new Date(r.date);
                 return d > start && d <= end;
             })
-            .reduce((sum, r) => sum + Number(r.distance), 0);
-    }
+            .reduce((s, r) => s + r.distance, 0);
+    };
 
-    let streakCount = 0;
-
-    // check last 8 weeks max
     for (let i = 0; i < 8; i++) {
-        let weekEnd = new Date();
-        weekEnd.setDate(today.getDate() - i * 7);
+        let end = new Date();
+        end.setDate(today.getDate() - i * 7);
 
-        let total = getWeekTotal(weekEnd);
-
-        if (total >= goal) {
-            streakCount++;
-        } else {
-            break; // streak stops
-        }
+        if (weekTotal(end) >= goal) count++;
+        else break;
     }
 
-    streak = streakCount;
-    localStorage.setItem("streak", JSON.stringify(streak));
+    streak = count;
+    localStorage.setItem("streak", streak);
 
-    let message = "";
-
-    if (streak === 0) {
-        message = "No active streak yet ❌";
-    } else if (streak < 2) {
-        message = "Good start 🔥";
-    } else if (streak < 4) {
-        message = "Strong consistency 💪";
-    } else {
-        message = "Elite discipline 🏆";
-    }
-
-    document.getElementById("streakText").innerHTML =
-        `🔥 ${streak} week streak<br><p>${message}</p>`;
+    setText("streakText", `🔥 ${streak} week streak`);
 }
-function setNav(id) {
-    document.getElementById(id).checked = true;
+
+/* =========================
+   UX HELPERS
+========================= */
+function athleteMessage(km) {
+    if (km === 0) return "Time to start your week 🏃";
+    if (km < 10) return "Light week — build momentum";
+    if (km < 25) return "Strong consistency 🔥";
+    return "Elite training week 🏆";
 }
+
+function setText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.innerText = text;
+}
+
 function setRadio(id) {
-    document.getElementById(id).checked = true;
-}
-function toggleDarkMode() {
-    document.body.classList.toggle("dark");
-
-    localStorage.setItem(
-        "darkMode",
-        document.body.classList.contains("dark")
-    );
+    const el = document.getElementById(id);
+    if (el) el.checked = true;
 }
 
-// load saved mode
+function save() {
+    localStorage.setItem("runs", JSON.stringify(runs));
+}
+
+/* =========================
+   INIT
+========================= */
 window.onload = function () {
-    if (localStorage.getItem("darkMode") === "true") {
-        document.body.classList.add("dark");
-        let toggle = document.querySelector(".input");
-        if (toggle) toggle.checked = true;
+    const user = localStorage.getItem("user");
+
+    if (user) {
+        document.getElementById("loginPage").style.display = "none";
+        document.getElementById("app").style.display = "flex";
+        showPage("home");
     }
 };
+function initMap() {
+    if (window._map) {
+        window._map.remove();
+    }
+
+    window._map = L.map('map').setView([36.8, 10.18], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: ''
+    }).addTo(window._map);
+
+    // fake Strava-like run route
+    const route = [
+        [36.800, 10.180],
+        [36.801, 10.182],
+        [36.803, 10.185],
+        [36.806, 10.189],
+        [36.808, 10.192],
+        [36.810, 10.195]
+    ];
+
+    L.polyline(route, {
+        color: "#ff4d4d",
+        weight: 4
+    }).addTo(window._map);
+
+    route.forEach(p => {
+        L.circleMarker(p, {
+            radius: 5,
+            color: "white",
+            fillColor: "#ff4d4d",
+            fillOpacity: 1
+        }).addTo(window._map);
+    });
+}
+function setPage(el, page) {
+    document.querySelectorAll(".nav-item").forEach(n => {
+        n.classList.remove("active");
+    });
+
+    el.classList.add("active");
+}
+function nav(el, page) {
+    document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+    el.classList.add("active");
+    showPage(page);
+}
